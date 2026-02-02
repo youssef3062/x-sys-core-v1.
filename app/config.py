@@ -13,12 +13,28 @@ class Config:
     TMP_UPLOAD_FOLDER = os.path.join(APP_ROOT, "..", "tmp_uploads")
     
     # Database
-    DB_NAME = os.environ.get("DB_NAME")
-    DB_USER = os.environ.get("DB_USER")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD")
-    DB_HOST = os.environ.get("DB_HOST")
-    DB_PORT = os.environ.get("DB_PORT")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
     
+    if DATABASE_URL:
+        # Parse the URL to get credentials (rudimentary parsing or just use the URL directly if using non-individual-field logic)
+        # However, since the rest of the app might use 'dbname', 'user', etc in a dict, we might need to parse it.
+        # Actually, let's keep it simple: If DATABASE_URL is present, we try to use it.
+        # But wait, looking at lines 22-30, DB_CONFIG returns a dict. 
+        # We need to parse the URL or change how DB_CONFIG is constructed.
+        import urllib.parse
+        url = urllib.parse.urlparse(DATABASE_URL)
+        DB_NAME = url.path[1:]
+        DB_USER = url.username
+        DB_PASSWORD = url.password
+        DB_HOST = url.hostname
+        DB_PORT = url.port
+    else:
+        DB_NAME = os.environ.get("DB_NAME")
+        DB_USER = os.environ.get("DB_USER")
+        DB_PASSWORD = os.environ.get("DB_PASSWORD")
+        DB_HOST = os.environ.get("DB_HOST")
+        DB_PORT = os.environ.get("DB_PORT")
+
     @property
     def DB_CONFIG(self):
         return {
