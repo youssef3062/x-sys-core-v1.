@@ -1,0 +1,594 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --brescan-blue: #1A73E8;
+        --brescan-blue-light: #E8F0FE;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        --card-shadow-hover: 0 20px 40px -5px rgba(26, 115, 232, 0.15);
+    }
+
+    body {
+        background-color: #F8F9FA;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .glass-header {
+        background: linear-gradient(135deg, var(--brescan-blue), #1557B0);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: white;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(26, 115, 232, 0.2);
+    }
+
+    .glass-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+        border-radius: 50%;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--card-shadow);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-shadow-hover);
+        border-color: rgba(26, 115, 232, 0.2);
+    }
+
+    .stat-card .icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .table-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        background: white;
+    }
+
+    .custom-table th {
+        background: #F8F9FA;
+        color: #5F6368;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 1rem 1.5rem;
+    }
+
+    .custom-table td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+    }
+
+    .custom-table tr:hover td {
+        background-color: #F8F9FA;
+    }
+
+    .custom-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .animate-fade-up {
+        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    @keyframes fadeUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .progress-thin {
+        height: 6px;
+        border-radius: 3px;
+        background-color: #F1F3F4;
+        overflow: hidden;
+    }
+
+    .badge-soft {
+        padding: 0.35em 0.8em;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+</style>
+
+<!-- Header -->
+<div class="glass-header animate-fade-up">
+    <div class="row align-items-center position-relative" style="z-index: 2;">
+        <div class="col-md-8">
+            <h1 class="fw-bold mb-2">Analytics Overview</h1>
+            <p class="mb-0 opacity-75" style="font-size: 1.1rem;">Real-time insights into hospital performance and
+                patient statistics.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <button class="btn btn-light text-primary fw-semibold px-4 py-2 shadow-sm border-0" onclick="refreshData()">
+                <i class="fas fa-sync-alt me-2"></i>Refresh Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Grid -->
+<div class="row g-4 mb-4">
+    <!-- Total Patients -->
+    <div class="col-xl-3 col-md-6 animate-fade-up" style="animation-delay: 0.1s;">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Patients</h6>
+                    <h2 class="display-6 fw-bold mb-0 text-dark counter">{{ data.total_patients }}</h2>
+                </div>
+                <div class="icon-box bg-primary-subtle text-primary">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
+                    <i class="fas fa-arrow-up me-1"></i>Active
+                </span>
+                <span class="text-muted small ms-2">Registered in system</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Visits -->
+    <div class="col-xl-3 col-md-6 animate-fade-up" style="animation-delay: 0.2s;">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Visits</h6>
+                    <h2 class="display-6 fw-bold mb-0 text-dark counter">{{ data.total_visits }}</h2>
+                </div>
+                <div class="icon-box" style="background: #E6F4EA; color: #137333;">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="badge rounded-pill px-2 py-1" style="background: #E6F4EA; color: #137333;">
+                    <i class="fas fa-clock me-1"></i>All Time
+                </span>
+                <span class="text-muted small ms-2">Medical consultations</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Stats -->
+    <div class="col-xl-3 col-md-6 animate-fade-up" style="animation-delay: 0.3s;">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Recent Activity</h6>
+                    <h2 class="display-6 fw-bold mb-0 text-dark counter">{{ data.recent_visits }}</h2>
+                </div>
+                <div class="icon-box" style="background: #FEF7E0; color: #F9AB00;">
+                    <i class="fas fa-history"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-muted small">Visits in the last 30 days</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="col-xl-3 col-md-6 animate-fade-up" style="animation-delay: 0.4s;">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-1"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">System Status</h6>
+                    <h2 class="display-6 fw-bold mb-0 text-success">99.9%</h2>
+                </div>
+                <div class="icon-box bg-success-subtle text-success">
+                    <i class="fas fa-server"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <span class="text-muted small">Operational Uptime</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Charts Section -->
+<div class="row g-4 mb-4">
+    <!-- Monthly Trends -->
+    <div class="col-lg-8 animate-fade-up" style="animation-delay: 0.5s;">
+        <div class="chart-card h-100">
+            <div class="chart-header">
+                <div>
+                    <h5 class="fw-bold mb-1">Monthly Visit Trends</h5>
+                    <p class="text-muted small mb-0">Patient visits over the last 6 months</p>
+                </div>
+                <button class="btn btn-sm btn-light rounded-pill px-3">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+            </div>
+            <div style="height: 300px; position: relative;">
+                <canvas id="monthlyTrendsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demographics -->
+    <div class="col-lg-4 animate-fade-up" style="animation-delay: 0.6s;">
+        <div class="chart-card h-100">
+            <div class="chart-header">
+                <div>
+                    <h5 class="fw-bold mb-1">Demographics</h5>
+                    <p class="text-muted small mb-0">Gender distribution</p>
+                </div>
+            </div>
+            <div
+                style="height: 250px; position: relative; display: flex; align-items: center; justify-content: center;">
+                <canvas id="genderChart"></canvas>
+            </div>
+            <div class="mt-4 text-center">
+                <div class="d-flex justify-content-center gap-3">
+                    {% for item in data.gender_distribution %}
+                    <div class="d-flex align-items-center">
+                        <span class="d-inline-block rounded-circle me-2"
+                            style="width: 8px; height: 8px; background-color: {% if item.gender == 'Male' %}#1A73E8{% elif item.gender == 'Female' %}#EC4899{% else %}#10B981{% endif %};"></span>
+                        <span class="small text-muted fw-medium">{{ item.gender }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Charts Section -->
+<div class="row g-4 mb-4">
+    <!-- Age Distribution -->
+    <div class="col-lg-6 animate-fade-up" style="animation-delay: 0.7s;">
+        <div class="chart-card h-100">
+            <div class="chart-header">
+                <div>
+                    <h5 class="fw-bold mb-1">Age Distribution</h5>
+                    <p class="text-muted small mb-0">Patient count by age group</p>
+                </div>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="ageChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blood Type -->
+    <div class="col-lg-6 animate-fade-up" style="animation-delay: 0.8s;">
+        <div class="chart-card h-100">
+            <div class="chart-header">
+                <div>
+                    <h5 class="fw-bold mb-1">Blood Types</h5>
+                    <p class="text-muted small mb-0">Distribution across patient database</p>
+                </div>
+            </div>
+            <div class="row g-3">
+                {% for blood_type in data.blood_type_distribution %}
+                <div class="col-sm-6 col-md-4">
+                    <div class="p-3 rounded-3" style="background: #F8F9FA;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark">{{ blood_type.type }}</span>
+                            <span class="badge bg-danger-subtle text-danger">{{ blood_type.count }}</span>
+                        </div>
+                        <div class="progress-thin">
+                            <div class="progress-bar bg-danger"
+                                style="width: {{ (blood_type.count / data.total_patients * 100) if data.total_patients > 0 else 0 }}%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Lists Section -->
+<div class="row g-4">
+    <!-- Top Providers -->
+    <div class="col-lg-6 animate-fade-up" style="animation-delay: 0.9s;">
+        <div class="table-card h-100">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Top Healthcare Providers</h5>
+                <a href="#" class="btn btn-link btn-sm text-decoration-none fw-semibold">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Provider Name</th>
+                            <th>Total Visits</th>
+                            <th>Contribution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for operator in data.top_operators %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3 bg-primary-subtle text-primary fw-bold"
+                                        style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                        {{ operator.operator[0]|upper }}
+                                    </div>
+                                    <span class="fw-medium text-dark">{{ operator.operator }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ operator.visits }}</span>
+                            </td>
+                            <td style="width: 40%;">
+                                <div class="d-flex align-items-center">
+                                    <span class="small text-muted me-2" style="width: 35px;">{{
+                                        "%.0f"|format((operator.visits / data.total_visits * 100) if data.total_visits >
+                                        0 else 0) }}%</span>
+                                    <div class="progress-thin flex-grow-1">
+                                        <div class="progress-bar bg-primary"
+                                            style="width: {{ (operator.visits / data.total_visits * 100) if data.total_visits > 0 else 0 }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Patients -->
+    <div class="col-lg-6 animate-fade-up" style="animation-delay: 1.0s;">
+        <div class="table-card h-100">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Recently Added Patients</h5>
+                <a href="#" class="btn btn-link btn-sm text-decoration-none fw-semibold">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>QR ID</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in data.recent_patients %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3 bg-light text-secondary"
+                                        style="width: 36px; height: 36px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium text-dark">{{ patient.name }}</div>
+                                        <small class="text-muted d-block">{{ patient.phone or 'No phone' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border font-monospace">{{ patient.qr_id }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-soft bg-success-subtle text-success">Active</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Common Chart Options
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#5F6368';
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: 'rgba(32, 33, 36, 0.9)',
+                padding: 12,
+                titleFont: { size: 13, weight: 600 },
+                bodyFont: { size: 13 },
+                cornerRadius: 8,
+                displayColors: false,
+                callbacks: {
+                    label: function (context) {
+                        return context.parsed.y !== null ? context.parsed.y + ' visits' : context.formattedValue;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+            },
+            y: {
+                border: { display: false },
+                grid: {
+                    borderDash: [4, 4],
+                    color: '#f0f0f0'
+                },
+                ticks: { padding: 10 }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        elements: {
+            line: { tension: 0.4 },
+            point: { radius: 0, hitRadius: 10, hoverRadius: 5 }
+        }
+    };
+
+    // Monthly Trends Chart
+    const monthlyCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
+    const monthlyData = {{ data.monthly_trends | default ([]) | tojson }};
+
+    // Create gradient
+    let gradient = monthlyCtx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(26, 115, 232, 0.2)');
+    gradient.addColorStop(1, 'rgba(26, 115, 232, 0)');
+
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.map(item => item.month),
+            datasets: [{
+                label: 'Visits',
+                data: monthlyData.map(item => item.count),
+                borderColor: '#1A73E8',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: commonOptions
+    });
+
+    // Gender Chart (Donut)
+    const genderCtx = document.getElementById('genderChart').getContext('2d');
+    const genderData = {{ data.gender_distribution | default ([]) | tojson }};
+
+    new Chart(genderCtx, {
+        type: 'doughnut',
+        data: {
+            labels: genderData.map(item => item.gender),
+            datasets: [{
+                data: genderData.map(item => item.count),
+                backgroundColor: ['#1A73E8', '#EC4899', '#10B981'],
+                borderWidth: 0,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            ...commonOptions,
+            cutout: '75%',
+            plugins: {
+                legend: { display: false } // Custom legend in HTML
+            },
+            scales: { x: { display: false }, y: { display: false } }
+        }
+    });
+
+    // Age Distribution Chart (Bar)
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    const ageData = {{ data.age_distribution | default ([]) | tojson }};
+
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: ageData.map(item => item.age_group),
+            datasets: [{
+                label: 'Patients',
+                data: ageData.map(item => item.count),
+                backgroundColor: '#1A73E8',
+                borderRadius: 4,
+                barThickness: 24
+            }]
+        },
+        options: {
+            ...commonOptions,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return context.parsed.y + ' Patients';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Refresh Data
+    function refreshData() {
+        const btn = document.querySelector('button[onclick="refreshData()"] i');
+        btn.classList.add('fa-spin');
+        setTimeout(() => {
+            location.reload();
+        }, 500);
+    }
+
+    // Auto-refresh stats counters? (Simulated for UX if needed, but not strictly required)
+</script>
+{% endblock %}

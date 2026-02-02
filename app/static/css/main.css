@@ -1,0 +1,467 @@
+/* 
+   Brescan Design System
+   =====================
+   Vision: Apple Health + Google Material + Hospital EMR
+   Simple, Clean, Medical-Grade, Trustworthy
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Brand Colors */
+    --brescan-blue: #1A73E8;
+    --brescan-blue-dark: #1557B0;
+    --brescan-blue-light: #E8F0FE;
+
+    /* Medical Colors */
+    --medical-green: #34A853;
+    --medical-red: #EA4335;
+    --medical-amber: #FBBC04;
+
+    /* Neutrals */
+    --white: #FFFFFF;
+    --grey-50: #F8F9FA;
+    --grey-100: #F1F3F4;
+    --grey-200: #E8EAED;
+    --grey-300: #DADCE0;
+    --grey-700: #5F6368;
+    --grey-900: #202124;
+
+    /* Shadows (Material Design) */
+    --shadow-1: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    --shadow-2: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+    --shadow-3: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px 0 rgba(60, 64, 67, 0.3);
+}
+
+[data-theme="dark"] {
+    --white: #202124;
+    --grey-50: #171717;
+    --grey-100: #303134;
+    --grey-200: #3c4043;
+    --grey-300: #5f6368;
+    --grey-700: #e8eaed;
+    --grey-900: #f8f9fa;
+    --brescan-blue-light: #1e2837;
+    /* Darker blue bg */
+    --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.5), 0 1px 3px 1px rgba(0, 0, 0, 0.3);
+
+    /* Inverse text colors for specific contexts */
+    .text-muted {
+        color: #9aa0a6 !important;
+    }
+
+    .bg-light {
+        background-color: #303134 !important;
+        border-color: #3c4043 !important;
+    }
+
+    .glass-card,
+    .card,
+    .modal-content {
+        background: rgba(32, 33, 36, 0.95);
+        border: 1px solid #3c4043;
+    }
+
+    .modern-nav,
+    .sidebar {
+        background: #202124;
+        border-color: #3c4043;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background-color: var(--grey-50);
+    color: var(--grey-900);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+}
+
+h4 {
+    font-size: 1.125rem;
+}
+
+h5 {
+    font-size: 1rem;
+}
+
+/* Navigation */
+.modern-nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--grey-200);
+    box-shadow: var(--shadow-1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Cards */
+/* Cards */
+.glass-card,
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-card:hover,
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--brescan-blue);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--brescan-blue-dark);
+    box-shadow: var(--shadow-2);
+    color: var(--white);
+}
+
+.btn-glass,
+.btn-light {
+    background: var(--white);
+    color: var(--grey-700);
+    border: 1px solid var(--grey-300);
+}
+
+.btn-glass:hover,
+.btn-light:hover {
+    background: var(--grey-50);
+    border-color: var(--grey-700);
+    color: var(--grey-900);
+}
+
+.btn-dark {
+    background: var(--grey-900);
+    color: var(--white);
+}
+
+.btn-dark:hover {
+    background: var(--grey-700);
+    color: var(--white);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+}
+
+.btn-lg {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+}
+
+/* Forms */
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--grey-300);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    background: var(--white);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--brescan-blue);
+    box-shadow: 0 0 0 3px var(--brescan-blue-light);
+}
+
+.input-group-text {
+    background: var(--grey-50);
+    border: 1px solid var(--grey-300);
+    padding: 0.75rem 1rem;
+}
+
+/* Tables */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table thead th {
+    background: var(--grey-50);
+    color: var(--grey-700);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--grey-200);
+}
+
+.table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--grey-100);
+}
+
+.table tbody tr:hover {
+    background: var(--grey-50);
+}
+
+.patient-row {
+    cursor: pointer;
+}
+
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.bg-success-subtle {
+    background: #E6F4EA;
+    color: var(--medical-green);
+}
+
+.bg-warning-subtle {
+    background: #FEF7E0;
+    color: #F9AB00;
+}
+
+.bg-primary-subtle {
+    background: var(--brescan-blue-light);
+    color: var(--brescan-blue);
+}
+
+/* Avatar */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--brescan-blue-light);
+    color: var(--brescan-blue);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Sidebar Layout (Operator) */
+.layout-sidebar {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+}
+
+.sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--grey-200);
+    padding: 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    padding: 2rem;
+    max-width: 1400px;
+}
+
+/* Animations (Minimal) */
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animations */
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.floating-card {
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Modals */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: var(--shadow-3);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--grey-100);
+}
+
+/* Ensure modals are above other content but below critical UI */
+.modal {
+    z-index: 1055 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-info {
+    background: var(--brescan-blue-light);
+    border-color: var(--brescan-blue);
+    color: var(--brescan-blue-dark);
+}
+
+.alert-success {
+    background: #E6F4EA;
+    border-color: var(--medical-green);
+    color: #137333;
+}
+
+.alert-warning {
+    background: #FEF7E0;
+    border-color: var(--medical-amber);
+    color: #B06000;
+}
+
+.alert-danger {
+    background: #FCE8E6;
+    border-color: var(--medical-red);
+    color: #C5221F;
+}
+
+/* Utilities */
+.text-muted {
+    color: var(--grey-700);
+}
+
+.text-primary {
+    color: var(--brescan-blue);
+}
+
+.fw-bold {
+    font-weight: 700;
+}
+
+.fw-medium {
+    font-weight: 500;
+}
+
+.sticky-top {
+    position: sticky;
+    top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .layout-sidebar {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none;
+    }
+}
+
+/* Text gradient for branding */
+.gradient-text,
+.text-gradient {
+    background: linear-gradient(135deg, var(--brescan-blue) 0%, #4285F4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

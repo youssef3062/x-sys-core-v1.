@@ -1,0 +1,335 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+<div class="container-fluid py-4" style="background: var(--grey-50); min-height: 100vh;">
+
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="glass-card"
+        style="background: linear-gradient(135deg, #1A73E8 0%, #4285F4 100%); color: white; border: none;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="fw-bold mb-2 text-white">
+              <i class="fas fa-user-md me-2"></i>Doctor Dashboard
+            </h2>
+            <p class="mb-0" style="opacity: 0.9;">
+              Welcome back, <strong>Dr. {{ doctor.full_name }}</strong>
+              <span class="badge bg-white text-primary ms-2 px-3 py-2" style="font-size: 0.875rem;">
+                {{ doctor.specialty }}
+              </span>
+            </p>
+          </div>
+          <div class="d-none d-md-flex gap-3 align-items-center">
+            <div class="text-end">
+              <small class="d-block" style="opacity: 0.8;">Hospital</small>
+              <strong>{{ doctor.hospital or 'Independent' }}</strong>
+            </div>
+            <div class="text-end">
+              <small class="d-block" style="opacity: 0.8;">ID</small>
+              <strong>{{ doctor.id }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- LEFT COLUMN: Patient Scanner & Quick Actions -->
+    <div class="col-lg-3">
+
+      <!-- QR Scanner Card -->
+      <div class="glass-card mb-4 text-center" style="border: 2px dashed var(--brescan-blue);">
+        <i class="fas fa-qrcode fa-3x text-primary mb-3"></i>
+        <h6 class="fw-bold mb-2">Scan Patient QR</h6>
+        <p class="text-muted small mb-3">Scan to access patient records</p>
+        <a href="{{ url_for('common.scanner_gate') }}" class="btn btn-primary w-100">
+          <i class="fas fa-camera me-2"></i>Open Scanner
+        </a>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="glass-card mb-4">
+        <h6 class="fw-bold mb-3 pb-2 border-bottom">
+          <i class="fas fa-chart-line text-primary me-2"></i>Today's Activity
+        </h6>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted small">Active Patient</span>
+          <span class="badge bg-success-subtle">{{ '1' if qr_id else '0' }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted small">Visits Logged</span>
+          <span class="badge bg-primary-subtle">{{ visits|length }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-muted small">Lab Reports</span>
+          <span class="badge bg-warning-subtle">{{ registration_labs|length }}</span>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="glass-card">
+        <h6 class="fw-bold mb-3 pb-2 border-bottom">
+          <i class="fas fa-bolt text-primary me-2"></i>Quick Actions
+        </h6>
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('common.scanner_gate') }}" class="btn btn-light">
+            <i class="fas fa-qrcode me-2"></i>Scan QR
+          </a>
+          <a href="{{ url_for('auth.doctor_login') }}" class="btn btn-light">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CENTER COLUMN: Patient Info & Clinical Entry -->
+    <div class="col-lg-6">
+
+      {% if qr_id %}
+      <!-- Active Patient Card -->
+      <div class="glass-card mb-4" style="border-left: 4px solid var(--brescan-blue);">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">
+              <i class="fas fa-user-injured text-primary me-2"></i>{{ patient.name }}
+            </h5>
+            <p class="text-muted mb-0 small">
+              <span class="me-3"><i class="fas fa-id-card me-1"></i>{{ qr_id }}</span>
+              <span class="me-3"><i class="fas fa-birthday-cake me-1"></i>{{ patient.age or 'N/A' }} years</span>
+              {% if patient.blood_type %}
+              <span class="badge" style="background: #FCE8E6; color: #EA4335;">{{ patient.blood_type }}</span>
+              {% endif %}
+            </p>
+          </div>
+          <span class="badge bg-success-subtle px-3 py-2">Active</span>
+        </div>
+
+        {% if patient.chronic_diseases %}
+        <div class="alert alert-danger mb-3" style="border-left: 4px solid var(--medical-red);">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Chronic Conditions:</strong> {{ patient.chronic_diseases }}
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <small class="text-muted d-block mb-1">Medications</small>
+            <div class="fw-medium">{{ patient.medications or 'None' }}</div>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block mb-1">Allergies/Notes</small>
+            <div class="fw-medium">{{ patient.other_info or 'None' }}</div>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block mb-1">Contact</small>
+            <div class="fw-medium">{{ patient.phone }}</div>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block mb-1">Emergency Contact</small>
+            <div class="fw-medium">{{ patient.emergency_contact or 'Not provided' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clinical Entry Form -->
+      <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-file-medical-alt text-success me-2"></i>New Consultation
+          </h5>
+          <span class="badge bg-success-subtle">Active Session</span>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-medium text-muted">Visit Date</label>
+              <input type="date" name="visit_date" class="form-control" required value="{{ today }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium text-muted">Lab Reports (PDF)</label>
+              <input type="file" name="lab_files" class="form-control" multiple accept=".pdf">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-medium text-muted">Diagnosis</label>
+              <input type="text" name="diagnosis" class="form-control" placeholder="Primary diagnosis..." required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-medium text-muted">Clinical Notes & Treatment</label>
+              <textarea name="treatment" class="form-control" rows="4"
+                placeholder="Detailed treatment plan, observations, etc."></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-medium text-muted">Prescription</label>
+              <textarea name="medicines" class="form-control" rows="2"
+                placeholder="Medications prescribed..."></textarea>
+            </div>
+
+            <div class="col-12 text-end">
+              <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-save me-2"></i>Save Visit Record
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {% elif access_denied_qr %}
+      <!-- Restricted Access / Emergency Link -->
+      <div class="glass-card text-center py-5" style="border: 2px solid var(--bs-danger);">
+        <i class="fas fa-shield-alt fa-4x text-danger mb-4"></i>
+        <h4 class="text-danger fw-bold mb-3">Access Restricted</h4>
+        <p class="text-muted mb-4">
+          This patient belongs to another hospital system.<br>
+          By default, you cannot view their medical records for privacy reasons.
+        </p>
+
+        <div class="card bg-warning-subtle border-warning mx-auto text-start" style="max-width: 450px;">
+          <div class="card-body">
+            <h5 class="text-warning-emphasis fw-bold">
+              <i class="fas fa-ambulance me-2"></i>Medical Emergency?
+            </h5>
+            <p class="small text-warning-emphasis mb-3">
+              If this is an emergency, you may establish a temporary connection to this patient
+              to provide immediate care. This action will be logged.
+            </p>
+            <form action="{{ url_for('main.doctor_emergency_link') }}" method="POST">
+              <input type="hidden" name="qr_id" value="{{ access_denied_qr }}">
+              <div class="mb-3">
+                <input type="text" name="reason" class="form-control form-control-sm border-warning"
+                  placeholder="Reason (e.g. Unconscious patient)" required>
+              </div>
+              <button type="submit" class="btn btn-danger w-100 fw-bold">
+                <i class="fas fa-link me-2"></i>Declare Emergency & Connect
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <a href="{{ url_for('doctor.doctor_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Cancel
+          </a>
+        </div>
+      </div>
+
+      {% else %}
+      <!-- No Patient Selected -->
+      <div class="glass-card text-center py-5">
+        <i class="fas fa-user-injured fa-4x text-muted mb-4" style="opacity: 0.2;"></i>
+        <h4 class="text-muted mb-3">No Patient Selected</h4>
+        <p class="text-muted mb-4">Scan a patient's QR code to access their medical records</p>
+        <a href="{{ url_for('common.scanner_gate') }}" class="btn btn-primary btn-lg">
+          <i class="fas fa-qrcode me-2"></i>Scan Patient QR
+        </a>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- RIGHT COLUMN: History & Files -->
+    <div class="col-lg-3">
+
+      {% if qr_id %}
+      <!-- Registration Files -->
+      <div class="glass-card mb-4">
+        <h6 class="fw-bold mb-3 pb-2 border-bottom">
+          <i class="fas fa-folder text-primary me-2"></i>Medical Files
+        </h6>
+        {% if registration_labs %}
+        <div class="list-group list-group-flush">
+          {% for lab in registration_labs %}
+          <a href="{{ url_for('common.labs', filename=lab.file_name) }}" target="_blank"
+            class="list-group-item list-group-item-action bg-transparent border-0 px-0 py-2">
+            <i class="fas fa-file-pdf text-danger me-2"></i>
+            <small>{{ lab.file_name }}</small>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No files uploaded</p>
+        {% endif %}
+      </div>
+
+      <!-- Visit History -->
+      <div class="glass-card">
+        <h6 class="fw-bold mb-3 pb-2 border-bottom">
+          <i class="fas fa-history text-primary me-2"></i>Visit History
+        </h6>
+        {% if visits %}
+        <div class="timeline-simple" style="max-height: 500px; overflow-y: auto;">
+          {% for visit in visits %}
+          <div class="mb-3 pb-3 border-bottom border-light">
+            <div class="d-flex justify-content-between mb-1">
+              <strong class="small">{{ visit.visit_date }}</strong>
+              <span class="badge bg-light text-dark border small">{{ visit.created_by }}</span>
+            </div>
+            <p class="mb-1 text-primary fw-medium small">{{ visit.diagnosis }}</p>
+            <p class="mb-1 text-muted small">{{ visit.treatment[:50] }}...</p>
+
+            {% if visit_labs.get(visit.id) %}
+            <div class="d-flex gap-1 mt-2 flex-wrap">
+              {% for report in visit_labs[visit.id] %}
+              <a href="{{ url_for('common.labs', filename=report.file_name) }}" target="_blank"
+                class="badge bg-white border text-secondary text-decoration-none">
+                <i class="fas fa-paperclip"></i> {{ report.file_name[:15] }}
+              </a>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No previous visits</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .glass-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow: 0 4px 8px rgba(60, 64, 67, 0.2);
+  }
+
+  .timeline-simple {
+    position: relative;
+  }
+
+  .timeline-simple .border-bottom:last-child {
+    border-bottom: none !important;
+  }
+
+  .form-control:focus {
+    border-color: var(--brescan-blue);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+  }
+
+  .btn-primary {
+    background: var(--brescan-blue);
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--brescan-blue-dark);
+    box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
+  }
+</style>
+{% endblock %}

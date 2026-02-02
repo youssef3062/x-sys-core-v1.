@@ -1,0 +1,431 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --brescan-blue: #1A73E8;
+        --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        --card-shadow-hover: 0 20px 40px -5px rgba(26, 115, 232, 0.15);
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--card-shadow);
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-shadow-hover);
+        border-color: rgba(26, 115, 232, 0.2);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .chart-card {
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+</style>
+
+<div class="layout-sidebar">
+    <!-- Professional Sidebar -->
+    <aside class="sidebar">
+        <div class="mb-4">
+            <a class="d-flex align-items-center text-decoration-none"
+                href="{{ url_for('operator.operator_dashboard') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" height="32" class="me-2">
+                <div>
+                    <div class="fw-bold">Brescan</div>
+                    <small class="text-muted">Operator Portal</small>
+                </div>
+            </a>
+        </div>
+
+        <nav class="nav flex-column gap-1 mb-4">
+            <a href="{{ url_for('operator.operator_dashboard') }}" class="btn btn-primary text-start">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+            <a href="{{ url_for('operator.analytics_dashboard') }}" class="btn btn-light text-start">
+                <i class="fas fa-chart-pie me-2"></i> Analytics
+            </a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin.admin_logs_view') }}" class="btn btn-light text-start">
+                <i class="fas fa-shield-alt me-2"></i> Security Logs
+            </a>
+            <a href="{{ url_for('admin.admin_connection_logs') }}" class="btn btn-light text-start">
+                <i class="fas fa-network-wired me-2"></i> Hospital Connections
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="border-top pt-3 mb-3"></div>
+
+        <div class="mb-3">
+            <small class="text-muted fw-bold d-block mb-2">QUICK ACTIONS</small>
+            <button class="btn btn-light w-100 text-start mb-2" data-bs-toggle="modal"
+                data-bs-target="#addPatientModal">
+                <i class="fas fa-user-plus me-2"></i> Add Patient
+            </button>
+            <button class="btn btn-light w-100 text-start" data-bs-toggle="modal" data-bs-target="#assignPatientModal">
+                <i class="fas fa-link me-2"></i> Assign Access
+            </button>
+        </div>
+
+        <div class="mt-auto pt-3 border-top">
+            <div class="card mb-2 border-0 bg-light">
+                <div class="p-2 d-flex align-items-center">
+                    <div class="avatar-circle me-2 bg-white text-primary"
+                        style="width: 32px; height: 32px; font-size: 0.875rem;">
+                        {{ session.username[0]|upper }}
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-medium small text-truncate">{{ session.username }}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">{{ hospital_name or 'Admin' }}</div>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-light w-100 btn-sm">
+                <i class="fas fa-sign-out-alt me-2"></i> Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="mb-4">
+            <div class="d-flex justify-content-between align-items-end mb-3">
+                <div>
+                    <h2 class="fw-bold mb-1">Patient Management</h2>
+                    <p class="text-muted mb-0">Manage and monitor your assigned patients</p>
+                </div>
+            </div>
+
+            <form class="row g-2" action="{{ url_for('operator.operator_dashboard') }}" method="get">
+                <div class="col-md-9">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="fas fa-search text-muted"></i></span>
+                        <input type="search" name="q" class="form-control border-start-0 ps-0"
+                            placeholder="Search by name, QR ID, or phone..." value="{{ q or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">Search</button>
+                    {% if q %}
+                    <a href="{{ url_for('operator.operator_dashboard') }}" class="btn btn-light">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <small class="text-muted d-block mb-1 text-uppercase fw-bold"
+                                style="font-size: 0.75rem;">Total Patients</small>
+                            <h3 class="fw-bold mb-0 display-6">{{ total_patients }}</h3>
+                        </div>
+                        <div class="stat-icon bg-primary-subtle text-primary">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <small class="text-muted d-block mb-1 text-uppercase fw-bold"
+                                style="font-size: 0.75rem;">Total Visits</small>
+                            <h3 class="fw-bold mb-0 display-6">{{ total_visits }}</h3>
+                        </div>
+                        <div class="stat-icon" style="background: #FEF7E0; color: #F9AB00;">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <small class="text-muted d-block mb-1 text-uppercase fw-bold" style="font-size: 0.75rem;">QR
+                                Scans</small>
+                            <h3 class="fw-bold mb-0 display-6">{{ total_scans }}</h3>
+                        </div>
+                        <div class="stat-icon bg-success-subtle text-success">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Activity Chart -->
+        <div class="card chart-card mb-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+            <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>Weekly Activity
+                </h5>
+            </div>
+            <div class="card-body px-4">
+                <div style="height: 250px;">
+                    <canvas id="weeklyActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient List -->
+        <div class="card chart-card animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="p-4 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Patient Records</h5>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill">{{ patients|length }} results</span>
+                </div>
+            </div>
+
+            {% if patients %}
+            <div class="table-responsive">
+                <table class="table mb-0 table-hover align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Patient</th>
+                            <th>Status</th>
+                            <th>Contact</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in patients %}
+                        <tr class="patient-row">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3 bg-light text-secondary"
+                                        style="width: 40px; height: 40px; font-size: 1rem;">
+                                        {{ p.name[0]|upper if p.name else '?' }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ p.name or 'Unnamed Patient' }}</div>
+                                        <small class="text-muted font-monospace">{{ p.qr_id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if p.chronic_diseases %}
+                                <span class="badge rounded-pill" style="background: #FCE8E6; color: #EA4335;">
+                                    <i class="fas fa-exclamation-triangle me-1"></i> Chronic
+                                </span>
+                                {% else %}
+                                <span class="badge rounded-pill bg-success-subtle text-success">
+                                    <i class="fas fa-check-circle me-1"></i> Healthy
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ p.phone or '-' }}</td>
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('patient.add_visit', qr_id=p['qr_id']) }}"
+                                    class="btn btn-sm btn-primary rounded-pill px-3" title="Add Visit">
+                                    <i class="fas fa-plus me-1"></i> Visit
+                                </a>
+                                <a href="{{ url_for('operator.operator_edit', qr_id=p['qr_id']) }}"
+                                    class="btn btn-sm btn-light rounded-pill px-3 ms-1" title="Edit Patient">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-5 text-center text-muted">
+                <div class="mb-3">
+                    <i class="fas fa-search fa-3x" style="opacity: 0.1;"></i>
+                </div>
+                <h5>No patients found</h5>
+                <p class="small text-muted">
+                    {% if q %}Try adjusting your search terms{% else %}Add a new patient to get started{% endif %}
+                </p>
+                {% if q %}
+                <a href="{{ url_for('operator.operator_dashboard') }}" class="btn btn-outline-primary btn-sm mt-2">Clear
+                    Search</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Add Patient Modal (Unchanged) -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Add New Patient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post" action="{{ url_for('admin.admin_add_qr') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium text-muted small text-uppercase">QR Code ID</label>
+                        <input type="text" class="form-control" name="qr_id" placeholder="BRESCAN-0001" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium text-muted small text-uppercase">Full Name</label>
+                        <input type="text" class="form-control" name="name" placeholder="John Doe">
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-medium text-muted small text-uppercase">Phone</label>
+                            <input type="text" class="form-control" name="phone" placeholder="+1234567890">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-medium text-muted small text-uppercase">Email</label>
+                            <input type="email" class="form-control" name="email" placeholder="email@example.com">
+                        </div>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-primary py-2" type="submit">Create Patient Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Modal (Unchanged) -->
+<div class="modal fade" id="assignPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Manual Patient Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post" action="{{ url_for('operator.operator_assign') }}">
+                    <p class="text-muted small mb-4">Assign yourself access to a patient record by QR ID. This action
+                        will be logged.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium text-muted small text-uppercase">Patient QR ID</label>
+                        <input type="text" class="form-control" name="qr_id" placeholder="BRESCAN-XXXX" required>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary py-2" type="submit">Assign Access</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('weeklyActivityChart').getContext('2d');
+        const analyticsData = {{ (analytics.get('weekly_activity') if analytics else[]) | tojson }};
+
+    let labels = [];
+    let data = [];
+
+    if (!analyticsData || analyticsData.length === 0) {
+        // Placeholder data if no data exists
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+            data.push(0);
+        }
+    } else {
+        labels = analyticsData.map(d => {
+            const date = new Date(d.day);
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        });
+        data = analyticsData.map(d => d.count);
+    }
+
+    // Gradient for chart
+    let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(26, 115, 232, 0.2)');
+    gradient.addColorStop(1, 'rgba(26, 115, 232, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Visits',
+                data: data,
+                borderColor: '#1A73E8',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#1A73E8',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(32, 33, 36, 0.9)',
+                    padding: 12,
+                    titleFont: { family: 'Inter', size: 13 },
+                    bodyFont: { family: 'Inter', size: 13 },
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) {
+                            return context.parsed.y + ' visits';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [4, 4], color: '#f0f0f0' },
+                    ticks: { stepSize: 1, color: '#5f6368', font: { family: 'Inter', size: 11 } },
+                    border: { display: false }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#5f6368', font: { family: 'Inter', size: 12 } },
+                    border: { display: false }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+    });
+</script>
+{% endblock %}

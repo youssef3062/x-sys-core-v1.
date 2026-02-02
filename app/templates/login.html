@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    /* Custom Login Page Overrides */
+    body {
+        overflow: hidden;
+        /* Prevent scroll on the split layout */
+        height: 100vh;
+    }
+
+    .login-container {
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .login-hero {
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, #1e40af 100%);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .login-hero::after {
+        content: '';
+        position: absolute;
+        width: 150%;
+        height: 150%;
+        background: url("{{ url_for('static', filename='logo.png') }}") no-repeat center center;
+        background-size: cover;
+        opacity: 0.1;
+        animation: spin-slow 60s linear infinite;
+        z-index: 1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        padding: 4rem;
+        backdrop-filter: blur(5px);
+    }
+
+    .login-form-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-body);
+        position: relative;
+    }
+
+    @keyframes spin-slow {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @media (max-width: 991px) {
+        .login-container {
+            grid-template-columns: 1fr;
+        }
+
+        .login-hero {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <!-- Hero Section -->
+    <div class="login-hero">
+        <div class="hero-content animate-fade-in">
+            <h1 class="display-3 fw-bold mb-3">Brescan</h1>
+            <p class="fs-4 fw-light opacity-75 mb-5">Advanced biometric scanning for safer healthcare.</p>
+            <div class="glass-card p-4 d-inline-block text-start border-0 bg-white bg-opacity-10">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-shield-alt fa-2x me-3"></i>
+                    <div>
+                        <h5 class="mb-0">Secure Access</h5>
+                        <small class="opacity-75">End-to-end encryption</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bolt fa-2x me-3"></i>
+                    <div>
+                        <h5 class="mb-0">Instant Results</h5>
+                        <small class="opacity-75">Real-time processing</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Form Section -->
+    <div class="login-form-area">
+        <div class="glass-card p-5 border-0 shadow-lg animate-fade-in"
+            style="width: 100%; max-width: 480px; background: rgba(255,255,255,0.6);">
+            <div class="text-center mb-5">
+                <img src="{{ url_for('static', filename='logo.png') }}" height="60" class="mb-3">
+                <h3 class="fw-bold">Welcome Back</h3>
+                <p class="text-muted">Sign in to access your portal</p>
+            </div>
+
+            <form method="post">
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="fas fa-user text-muted"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0"
+                            placeholder="e.g. nurse_jane" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="fas fa-lock text-muted"></i></span>
+                        <input type="password" name="password" class="form-control border-start-0 ps-0"
+                            placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-3 mt-5">
+                    <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                    <a href="{{ url_for('common.scanner_gate') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-qrcode me-2"></i>Scanner Gate
+                    </a>
+                </div>
+            </form>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">© 2024 Brescan Healthcare Systems</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

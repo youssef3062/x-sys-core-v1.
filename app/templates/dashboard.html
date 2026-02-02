@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <!-- LEFT: Patient Profile & Quick Stats -->
+    <div class="col-lg-3">
+      <div class="card mb-4">
+        <div class="text-center p-4">
+          {% if patient.patient_photo %}
+          <img src="{{ url_for('common.photos', filename=patient.patient_photo) }}" alt="Patient" class="rounded-circle mb-3"
+            style="width: 100px; height: 100px; object-fit: cover;">
+          {% else %}
+          <div class="avatar-circle mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2.5rem;">
+            <i class="fas fa-user"></i>
+          </div>
+          {% endif %}
+          <h4 class="fw-bold mb-1">{{ patient.name }}</h4>
+          <p class="text-muted small mb-3">{{ age or 'N/A' }} years old</p>
+          <div class="badge bg-primary-subtle mb-2">{{ qr_id }}</div>
+          {% if patient.blood_type %}
+          <div class="badge" style="background: #FCE8E6; color: #EA4335;">{{ patient.blood_type }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="card mb-4">
+        <div class="p-3 border-bottom">
+          <h6 class="fw-bold mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Health Metrics</h6>
+        </div>
+        <div class="p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Total Visits</span>
+            <span class="fw-bold">{{ visits|length }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Lab Reports</span>
+            <span class="fw-bold">{{ registration_labs|length }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Medication</span>
+            <span class="fw-bold">{{ patient.monthly_pills or 0 }} pills/mo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Emergency Contact -->
+      {% if patient.emergency_contact %}
+      <div class="card" style="border-left: 4px solid #EA4335;">
+        <div class="p-3">
+          <h6 class="fw-bold mb-2"><i class="fas fa-phone-alt me-2" style="color: #EA4335;"></i>Emergency Contact</h6>
+          <p class="mb-0 small">{{ patient.emergency_contact }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- CENTER: Health Timeline -->
+    <div class="col-lg-6">
+      <!-- Chronic Conditions Alert -->
+      {% if patient.chronic_diseases %}
+      <div class="alert alert-danger mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Chronic Conditions:</strong> {{ patient.chronic_diseases }}
+      </div>
+      {% endif %}
+
+      <!-- Medical Visits Timeline -->
+      <div class="card mb-4">
+        <div class="p-3 border-bottom">
+          <h5 class="fw-bold mb-0"><i class="fas fa-notes-medical me-2 text-primary"></i>Medical History</h5>
+        </div>
+        <div class="p-3">
+          {% if visits %}
+          {% for visit in visits %}
+          <div class="card mb-3 fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+            <div class="p-3">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="fw-bold mb-1">{{ visit.visit_date }}</h6>
+                  <small class="text-muted">Dr. {{ visit.created_by }}</small>
+                </div>
+                <span class="badge bg-success-subtle">Visit #{{ loop.revindex }}</span>
+              </div>
+              {% if visit.diagnosis %}
+              <p class="mb-2"><strong>Diagnosis:</strong> {{ visit.diagnosis }}</p>
+              {% endif %}
+              {% if visit.treatment %}
+              <p class="mb-2"><strong>Treatment:</strong> {{ visit.treatment }}</p>
+              {% endif %}
+              {% if visit.medicines %}
+              <p class="mb-0"><strong>Medications:</strong> {{ visit.medicines }}</p>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="fas fa-clipboard-list fa-3x mb-3" style="opacity: 0.2;"></i>
+            <p>No medical visits recorded yet</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Lab Reports -->
+      <div class="card">
+        <div class="p-3 border-bottom">
+          <h5 class="fw-bold mb-0"><i class="fas fa-flask me-2 text-primary"></i>Lab Reports</h5>
+        </div>
+        <div class="p-3">
+          {% if registration_labs %}
+          <div class="row g-3">
+            {% for lab in registration_labs %}
+            <div class="col-md-6">
+              <div class="card">
+                <div class="p-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-file-medical fa-2x text-primary me-3"></i>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0 fw-bold">{{ lab.lab_name }}</h6>
+                      <small class="text-muted">{{ lab.uploaded_at }}</small>
+                    </div>
+                  </div>
+                  <a href="{{ url_for('common.labs', filename=lab.file_name) }}" class="btn btn-sm btn-primary w-100"
+                    target="_blank">
+                    <i class="fas fa-download me-2"></i>View Report
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="fas fa-flask fa-3x mb-3" style="opacity: 0.2;"></i>
+            <p>No lab reports available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Tools & Info -->
+    <div class="col-lg-3">
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="p-3 border-bottom">
+          <h6 class="fw-bold mb-0"><i class="fas fa-tools me-2 text-primary"></i>Quick Actions</h6>
+        </div>
+        <div class="p-3 d-grid gap-2">
+          <a href="{{ url_for('doctor.doctor_dashboard') }}?qr_id={{ qr_id }}" class="btn btn-primary">
+            <i class="fas fa-user-md me-2"></i>Doctor View
+          </a>
+          <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#uploadLabModal">
+            <i class="fas fa-upload me-2"></i>Upload Lab
+          </button>
+          <button class="btn btn-light" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print Summary
+          </button>
+        </div>
+      </div>
+
+      <!-- Health Tip -->
+      {% if health_tip %}
+      <div class="card" style="background: #E6F4EA; border-left: 4px solid #34A853;">
+        <div class="p-3">
+          <h6 class="fw-bold mb-2"><i class="fas fa-lightbulb me-2" style="color: #34A853;"></i>Health Tip</h6>
+          <p class="mb-0 small">{{ health_tip }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Contact Info -->
+      <div class="card mt-4">
+        <div class="p-3">
+          <h6 class="fw-bold mb-3">Contact Information</h6>
+          {% if patient.phone %}
+          <p class="mb-2 small"><i class="fas fa-phone me-2 text-muted"></i>{{ patient.phone }}</p>
+          {% endif %}
+          {% if patient.email %}
+          <p class="mb-0 small"><i class="fas fa-envelope me-2 text-muted"></i>{{ patient.email }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Upload Lab Modal -->
+<div class="modal fade" id="uploadLabModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Upload Lab Report</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('patient.lab_upload', qr_id=qr_id) }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="labFile" class="form-label">Select File (PDF, DOC, Images)</label>
+            <input class="form-control" type="file" id="labFile" name="lab_file" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

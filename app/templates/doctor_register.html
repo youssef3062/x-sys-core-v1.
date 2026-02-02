@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="medical-card mb-4">
+                <div class="text-center">
+                    <h2 class="mb-1">
+                        <i class="fas fa-user-md text-primary me-2"></i>
+                        Doctor Registration
+                    </h2>
+                    <p class="text-muted mb-0">Register as a healthcare provider</p>
+                </div>
+            </div>
+
+            <!-- Registration Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i> Doctor Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- Basic Info -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-2 text-primary"></i> Full Name *
+                                </label>
+                                <input type="text" class="form-control" name="full_name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-stethoscope me-2 text-primary"></i> Specialty *
+                                </label>
+                                <input type="text" class="form-control" name="specialty" required
+                                    placeholder="e.g., Cardiology, General Medicine">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-phone me-2 text-primary"></i> Phone Number *
+                                </label>
+                                <input type="tel" class="form-control" name="phone" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope me-2 text-primary"></i> Email *
+                                </label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-hospital me-2 text-primary"></i> Hospital/Clinic *
+                                </label>
+                                <input type="text" class="form-control" name="hospital" required
+                                    placeholder="Hospital or clinic name">
+                                <small class="text-muted">Enter the name of your hospital or clinic</small>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-building me-2 text-primary"></i> Hospital System
+                                </label>
+                                <select class="form-select" name="hospital_id">
+                                    <option value="">Other (Independent/Not Listed)</option>
+                                    {% for hospital in hospitals %}
+                                    <option value="{{ hospital.id }}">{{ hospital.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">
+                                    Select your hospital system if listed. Choose "Other" if you're independent or your
+                                    hospital isn't in our system.
+                                </small>
+                            </div>
+
+                            <!-- Login Credentials -->
+                            <div class="col-12">
+                                <hr>
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-key me-2"></i> Login Credentials
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i> Username *
+                                </label>
+                                <input type="text" class="form-control" name="username" required>
+                                <small class="text-muted">Choose a unique username for login</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-lock me-2 text-primary"></i> Password *
+                                </label>
+                                <input type="password" class="form-control" name="password" required>
+                                <small class="text-muted">Minimum 6 characters</small>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-3 justify-content-center mt-4">
+                            <a href="{{ url_for('common.scanner_gate') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i> Register Doctor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Login Link -->
+            <div class="text-center mt-4">
+                <p class="text-muted">Already registered?
+                    <a href="{{ url_for('auth.doctor_login') }}" class="text-primary">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login here
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

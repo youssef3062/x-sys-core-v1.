@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="text-center fade-in">
+
+                <!-- Logo and Header -->
+                <div class="mb-5 text-center">
+                    <div class="floating-card d-inline-block mb-4">
+                        <img src="{{ url_for('static', filename='logo.png') }}" class="mb-3"
+                             style="height: 120px; filter: drop-shadow(0 8px 16px rgba(37,99,235,0.2));">
+                    </div>
+                    <h1 class="display-4 fw-bold gradient-text mb-3">One scan, saves life</h1>
+                    <p class="lead text-muted fs-5">
+                        <i class="fas fa-heartbeat text-primary me-2"></i>
+                        Point the camera at the patient's QR code to access medical information
+                    </p>
+                </div>
+
+                <!-- QR Scanner -->
+                <div class="glass-card mb-5">
+                    <div class="card-header text-center bg-transparent border-0">
+                        <h5 class="mb-0">
+                            <i class="fas fa-qrcode text-primary me-2 pulse-animation"></i>
+                            QR Code Scanner
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="qr-scanner-container">
+                            <div id="reader" style="width: 100%; max-width: 600px; margin: auto;"></div>
+                            <div class="qr-scanner-overlay"></div>
+                        </div>
+
+                        <!-- Zoom Control -->
+                        <div class="mt-4">
+                            <label for="zoomRange" class="form-label fw-semibold">
+                                <i class="fas fa-search-plus text-primary me-2"></i>Zoom Control
+                            </label>
+                            <input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1"
+                                   class="form-range" onchange="setZoom(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap justify-content-center gap-4 mb-5">
+                    <a class="btn btn-primary btn-lg px-4 py-3" href="{{ url_for('auth.operator_login') }}">
+                        <i class="fas fa-user-md me-2"></i>Operator Login
+                    </a>
+                    <a class="btn btn-outline-secondary btn-lg px-4 py-3" href="{{ url_for('auth.create_operator') }}">
+                        <i class="fas fa-user-plus me-2"></i>Create Operator
+                    </a>
+                    <button class="btn btn-outline-primary btn-lg px-4 py-3" onclick="openManual()">
+                        <i class="fas fa-keyboard me-2"></i>Enter QR Manually
+                    </button>
+                </div>
+
+                <!-- Manual Entry Form -->
+                <div id="manual" class="glass-card d-none slide-in">
+                    <div class="card-header bg-transparent border-0">
+                        <h6 class="mb-0">
+                            <i class="fas fa-edit text-primary me-2"></i>
+                            Manual QR Entry
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="manualForm" onsubmit="manualSubmit(event)" class="d-flex gap-3">
+                            <input id="manualInput" class="form-control form-control-lg"
+                                   placeholder="Enter QR ID (e.g. BRESCAN-0001)" required>
+                            <button class="btn btn-primary btn-lg px-4" type="submit">
+                                <i class="fas fa-arrow-right me-2"></i>Go
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Help Text -->
+                <div class="text-muted small mt-4">
+                    <div class="status-indicator online d-inline-flex">
+                        <div class="status-dot"></div>
+                        <span>System Online</span>
+                    </div>
+                    <div class="mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Tip: QR code images are available in <code>/static/qrcodes</code> directory
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+const qrRegionId = "reader";
+const html5QrCode = new Html5Qrcode(qrRegionId);
+let currentTrack = null;
+
+function onScanSuccess(decodedText) {
+    html5QrCode.stop().then(() => {
+        window.location.href = "/access/" + encodeURIComponent(decodedText);
+    }).catch(err => console.error("Stop failed:", err));
+}
+
+function onScanFailure(error) {
+    // ignore frame decode errors
+}
+
+function startScanner() {
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            let backCam = devices.find(d => d.label.toLowerCase().includes("back"));
+            let cameraId = backCam ? backCam.id : devices[0].id;
+
+            html5QrCode.start(
+                cameraId,
+                {
+                    fps: 15,
+                    qrbox: undefined,
+                    aspectRatio: 1.777,
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+                    videoConstraints: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        facingMode: "environment"
+                    }
+                },
+                onScanSuccess,
+                onScanFailure
+            ).then(() => {
+                const stream = document.querySelector("#" + qrRegionId + " video").srcObject;
+                if (stream) {
+                    currentTrack = stream.getTracks()[0];
+                    const capabilities = currentTrack.getCapabilities();
+                    if (capabilities.zoom) {
+                        document.getElementById("zoomRange").min = capabilities.zoom.min;
+                        document.getElementById("zoomRange").max = capabilities.zoom.max;
+                        document.getElementById("zoomRange").step = capabilities.zoom.step || 0.1;
+                    } else {
+                        document.getElementById("zoomRange").disabled = true;
+                    }
+                }
+            });
+        } else {
+            alert("No camera found!");
+        }
+    }).catch(err => {
+        console.error(err);
+        alert("Unable to access camera. Please allow camera permissions.");
+    });
+}
+
+async function setZoom(level) {
+    if (currentTrack) {
+        try {
+            await currentTrack.applyConstraints({ advanced: [{ zoom: level }] });
+        } catch (err) {
+            console.warn("Zoom not supported:", err);
+        }
+    }
+}
+
+// Manual entry functions
+function openManual() {
+    const manualDiv = document.getElementById('manual');
+    manualDiv.classList.toggle('d-none');
+    if (!manualDiv.classList.contains('d-none')) {
+        document.getElementById('manualInput').focus();
+    }
+}
+
+function manualSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('manualInput').value.trim();
+    if (!id) {
+        alert('Please enter a QR ID');
+        return;
+    }
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Loading...';
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    setTimeout(() => {
+        location.href = '/access/' + encodeURIComponent(id);
+    }, 300);
+}
+
+startScanner();
+</script>
+{% endblock %}

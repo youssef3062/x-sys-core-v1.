@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="fas fa-shield-alt text-danger me-2"></i>Security Audit Log</h2>
+        <a href="{{ url_for('operator.operator_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="logsTable">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Time</th>
+                        <th>Operator</th>
+                        <th>Action</th>
+                        <th>Target Patient (QR)</th>
+                        <th>IP Address</th>
+                        <th>Device</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td class="small text-muted">{{ log.timestamp }}</td>
+                        <td class="fw-bold text-primary">{{ log.operator_name or ('ID: ' + log.operator_id|string) }}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+                        <td class="font-monospace">{{ log.qr_id or '-' }}</td>
+                        <td class="small">{{ log.ip_address or '-' }}</td>
+                        <td class="small text-truncate" style="max-width: 150px;" title="{{ log.device_info }}">
+                            {{ log.device_info or '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No logs found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

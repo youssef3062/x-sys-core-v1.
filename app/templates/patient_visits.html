@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="medical-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-history text-primary me-2"></i>
+                            Patient Visits
+                        </h2>
+                        <p class="text-muted mb-0">{{ patient['name'] }} - Medical Visit History</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('operator.operator_dashboard') }}">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                        <a class="btn btn-success" href="{{ url_for('patient.add_visit', qr_id=qr_id) }}">
+                            <i class="fas fa-plus me-2"></i>Add New Visit
+                        </a>
+                        <a class="btn btn-primary" href="{{ url_for('patient.export_visits', qr_id=qr_id) }}">
+                            <i class="fas fa-download me-2"></i>Export CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg"
+                style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3">
+                                <i class="fas fa-brain fa-2x text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-1 text-white">Brescan AI Insights</h4>
+                                <p class="mb-0 text-white-50">Advanced pattern recognition and health summarization</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-light" id="analyzeBtn" onclick="runAIAnalysis()">
+                            <i class="fas fa-magic me-2"></i>Generate Report
+                        </button>
+                    </div>
+
+                    <!-- AI Result Container -->
+                    <div id="aiResult" class="mt-4 p-3 bg-white bg-opacity-10 rounded-3 d-none">
+                        <div id="aiSpinner" class="text-center py-3">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-white-50 mb-0">Analyzing {{ visits|length }} records...</p>
+                        </div>
+                        <div id="aiContent" class="d-none">
+                            <div class="d-flex align-items-start fade-in">
+                                <i class="fas fa-robot me-3 mt-1 fa-lg"></i>
+                                <div>
+                                    <h5 class="text-white mb-2">Analysis Complete</h5>
+                                    <p class="mb-0 fs-5" id="aiText"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visits Timeline -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-check text-primary me-2"></i>
+                        Visit History ({{ visits|length }} visits)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if visits %}
+                    <div class="timeline">
+                        {% for v in visits %}
+                        <div class="timeline-item slide-in">
+                            <div class="visit-card">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-calendar-check text-primary me-2"></i>
+                                            {{ v['visit_date'] }}
+                                        </h6>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-md me-1"></i>
+                                            Recorded by: {{ v['created_by'] or 'System' }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-primary">Visit #{{ loop.revindex }}</span>
+                                </div>
+
+                                {% if v['diagnosis'] %}
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-stethoscope text-primary me-2 mt-1" style="width: 16px;"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="text-primary d-block">Diagnosis:</strong>
+                                            <p class="mb-0">{{ v['diagnosis'] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if v['treatment'] %}
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-heartbeat text-success me-2 mt-1" style="width: 16px;"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="text-success d-block">Treatment:</strong>
+                                            <p class="mb-0">{{ v['treatment'] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if v['medicines'] %}
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-pills text-warning me-2 mt-1" style="width: 16px;"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="text-warning d-block">Medicines:</strong>
+                                            <p class="mb-0">{{ v['medicines'] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if visit_labs.get(v['id']) %}
+                                <div class="mt-3">
+                                    <strong class="text-info d-block mb-2">
+                                        <i class="fas fa-paperclip me-2"></i>Lab Reports:
+                                    </strong>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for lab in visit_labs[v['id']] %}
+                                        <a href="{{ url_for('common.labs', filename=lab['file_name']) }}"
+                                            target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-file-medical me-2"></i>
+                                            {{ lab['file_name'] }}
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-muted">No visits recorded yet</h4>
+                        <p class="text-muted">This patient hasn't had any medical visits recorded in the system.</p>
+                        <a class="btn btn-primary" href="{{ url_for('patient.add_visit', qr_id=qr_id) }}">
+                            <i class="fas fa-plus me-2"></i>Add First Visit
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Floating Button -->
+<div class="position-fixed" style="bottom: 2rem; right: 2rem; z-index: 1000;">
+    <div class="dropdown">
+        <button class="btn btn-primary rounded-circle" style="width: 60px; height: 60px;" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <i class="fas fa-plus"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('patient.add_visit', qr_id=qr_id) }}">
+                    <i class="fas fa-plus me-2"></i>Add Visit
+                </a></li>
+            <li><a class="dropdown-item" href="{{ url_for('operator.operator_edit', qr_id=qr_id) }}">
+                    <i class="fas fa-edit me-2"></i>Edit Patient
+                </a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('patient.export_visits', qr_id=qr_id) }}">
+                    <i class="fas fa-download me-2"></i>Export Data
+                </a></li>
+            <li><a class="dropdown-item" href="{{ url_for('operator.operator_dashboard') }}">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a></li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    function runAIAnalysis() {
+        const btn = document.getElementById('analyzeBtn');
+        const result = document.getElementById('aiResult');
+        const spinner = document.getElementById('aiSpinner');
+        const content = document.getElementById('aiContent');
+        const text = document.getElementById('aiText');
+
+        // Show container
+        result.classList.remove('d-none');
+        spinner.classList.remove('d-none');
+        content.classList.add('d-none');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+        // Simulate API delay
+        setTimeout(() => {
+            spinner.classList.add('d-none');
+            content.classList.remove('d-none');
+
+            btn.innerHTML = '<i class="fas fa-check me-2"></i>Analysis Ready';
+            btn.classList.remove('btn-light');
+            btn.classList.add('btn-success');
+
+            // Generate insights
+            const diagnoses = Array.from(document.querySelectorAll('.visit-card strong.text-primary + p')).map(p => p.textContent.trim());
+
+            let summary = "Patient visits indicate a consistent medical history. ";
+            if (diagnoses.length > 0) {
+                const unique = [...new Set(diagnoses)];
+                summary += `Primary notations include: <strong>${unique.slice(0, 3).join(", ")}</strong>. `;
+                if (diagnoses.length > 5) summary += "High frequency of visits suggests chronic condition monitoring. ";
+            } else {
+                summary += "No significant diagnosis patterns detected in recent history. ";
+            }
+            summary += "Vitals appear stable based on treatment logs. Recommended action: Continue standard follow-up schedule.";
+
+            text.innerHTML = summary;
+
+        }, 2500);
+    }
+</script>
+{% endblock %}

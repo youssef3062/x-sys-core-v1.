@@ -1,10 +1,21 @@
 # generate_qrs.py
 import qrcode
-import sqlite3
+from dotenv import load_dotenv
+
+load_dotenv()
+import psycopg2
+import psycopg2.extras
 import os
 import re
 
-DB = "database.db"
+DB_CONFIG = {
+    "dbname": os.environ.get("DB_NAME"),
+    "user": os.environ.get("DB_USER"),
+    "password": os.environ.get("DB_PASSWORD"),
+    "host": os.environ.get("DB_HOST"),
+    "port": os.environ.get("DB_PORT")
+}
+
 OUT = os.path.join("static", "qrcodes")
 os.makedirs(OUT, exist_ok=True)
 
@@ -13,13 +24,13 @@ def extract_number(qr_id, prefix):
     return int(m.group(1)) if m else 0
 
 def generate(n=10, prefix="BRESCAN"):
-    conn = sqlite3.connect(DB)
-    c = conn.cursor()
-    c.execute("SELECT qr_id FROM qrcodes WHERE qr_id LIKE ?", (f"{prefix}-%",))
+    conn = psycopg2.connect(**DB_CONFIG)
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    c.execute("SELECT qr_id FROM qrcodes WHERE qr_id LIKE %s", (f"{prefix}-%",))
     rows = c.fetchall()
     max_idx = 0
-    for (row,) in rows:
-        idx = extract_number(row, prefix)
+    for row in rows:
+        idx = extract_number(row["qr_id"], prefix)
         if idx > max_idx:
             max_idx = idx
 
@@ -37,9 +48,10 @@ def generate(n=10, prefix="BRESCAN"):
                 j += 1
             path = os.path.join(OUT, f"{base}_{j}{ext}")
 
-        img = qrcode.make(qr_id)
+        img = qrcode.make(qr_id,)
         img.save(path)
-        c.execute("INSERT OR IGNORE INTO qrcodes (qr_id, assigned) VALUES (?, 0)", (qr_id,))
+        c.execute("INSERT INTO qrcodes (qr_id, assigned) VALUES (%s, 0) ON CONFLICT (qr_id,) DO NOTHING", (qr_id,)
+)
         print("->", qr_id)
     conn.commit()
     conn.close()
