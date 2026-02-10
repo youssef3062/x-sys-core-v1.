@@ -193,7 +193,7 @@ def guest_view(qr_id):
     if role == "doctor":
         return redirect(url_for("doctor.doctor_dashboard", qr_id=qr_id))
     elif role == "operator":
-        return redirect(url_for("patient.visit_add", qr_id=qr_id)) 
+        return redirect(url_for("patient.add_visit", qr_id=qr_id)) 
         
     success, patient = fetch_patient_from_api(qr_id)
     if not success:

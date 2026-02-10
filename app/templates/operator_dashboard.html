@@ -42,8 +42,11 @@
 </style>
 
 <div class="layout-sidebar">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
     <!-- Professional Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="mainSidebar">
         <div class="mb-4">
             <a class="d-flex align-items-center text-decoration-none"
                 href="{{ url_for('operator.operator_dashboard') }}">
@@ -109,9 +112,15 @@
         <!-- Header -->
         <header class="mb-4">
             <div class="d-flex justify-content-between align-items-end mb-3">
-                <div>
-                    <h2 class="fw-bold mb-1">Patient Management</h2>
-                    <p class="text-muted mb-0">Manage and monitor your assigned patients</p>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-white shadow-sm d-lg-none p-2 border" onclick="toggleSidebar()"
+                        type="button">
+                        <i class="fas fa-bars fa-fw text-primary"></i>
+                    </button>
+                    <div>
+                        <h2 class="fw-bold mb-1">Patient Management</h2>
+                        <p class="text-muted mb-0">Manage and monitor your assigned patients</p>
+                    </div>
                 </div>
             </div>
 
@@ -427,5 +436,13 @@
         }
     });
     });
+
+    // Mobile Sidebar Functionality
+    function toggleSidebar() {
+        const sidebar = document.getElementById('mainSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('show');
+    }
 </script>
 {% endblock %}
