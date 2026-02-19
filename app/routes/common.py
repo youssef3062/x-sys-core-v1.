@@ -27,3 +27,9 @@ def scan_result():
         return jsonify({"action": "access", "qr_id": qr_id})
     else:
         return jsonify({"action": "register", "qr_id": qr_id})
+
+
+@common_bp.route("/emergency/offline", endpoint="emergency_offline_verifier")
+def emergency_offline_verifier():
+    public_key_pem = current_app.config.get("EMERGENCY_PUBLIC_KEY_PEM", "")
+    return render_template("emergency_offline_verifier.html", public_key_pem=public_key_pem)

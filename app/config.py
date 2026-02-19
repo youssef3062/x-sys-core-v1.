@@ -47,3 +47,12 @@ class Config:
 
     ALLOWED_LAB_EXT = {"pdf", "doc", "docx", "txt", "csv", "xlsx"}
     ALLOWED_PHOTO_EXT = {"png", "jpg", "jpeg", "gif"}
+
+    # Emergency offline token settings (Ed25519 asymmetric signing)
+    EMERGENCY_TOKEN_TTL_SECONDS = int(os.environ.get("EMERGENCY_TOKEN_TTL_SECONDS", "2592000"))  # 30 days
+    EMERGENCY_TOKEN_ISSUER = os.environ.get("EMERGENCY_TOKEN_ISSUER", "brescan")
+    EMERGENCY_PRIVATE_KEY_PEM = os.environ.get("EMERGENCY_PRIVATE_KEY_PEM")
+    EMERGENCY_PUBLIC_KEY_PEM = os.environ.get("EMERGENCY_PUBLIC_KEY_PEM")
+
+    # Login hardening defaults
+    LOGIN_RATE_LIMIT_PER_MINUTE = os.environ.get("LOGIN_RATE_LIMIT_PER_MINUTE", "8")

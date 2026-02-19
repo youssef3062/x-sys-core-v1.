@@ -18,7 +18,10 @@
 
         <div class="d-grid gap-3">
             <a href="{{ url_for('patient.guest_view', qr_id=qr_id) }}" class="btn btn-light btn-lg border shadow-sm">
-                <i class="fas fa-eye text-primary me-3"></i> Guest View
+                <i class="fas fa-eye text-primary me-3"></i> Guest View (Minimal)
+            </a>
+            <a href="{{ url_for('common.emergency_offline_verifier') }}" class="btn btn-outline-danger btn-lg shadow-sm">
+                <i class="fas fa-shield-alt me-3"></i> Offline Emergency Verifier
             </a>
             <a href="{{ url_for('auth.login', qr_id=qr_id) }}" class="btn btn-primary btn-lg shadow-sm">
                 <i class="fas fa-user me-3"></i> Patient Login

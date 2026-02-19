@@ -8,3 +8,4 @@ opencv-python
 numpy
 python-dotenv
 cryptography>=41.0.0
+bcrypt>=4.1.2

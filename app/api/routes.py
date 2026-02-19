@@ -1,13 +1,14 @@
 import os
 import random
+import time
 from datetime import datetime, timedelta
 from collections import Counter
 
 from flask import request, jsonify, current_app
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 import psycopg2.extras
+import qrcode
 
 from app.db import get_db
 from app.utils import (
@@ -18,11 +19,68 @@ from app.services.access_service import (
     check_operator_access, check_doctor_access,
     log_operator_action, log_hospital_connection
 )
+from app.security.passwords import hash_password, verify_password
+from app.security.emergency_token import (
+    load_private_key_from_pem,
+    load_public_key_from_pem,
+    public_key_to_spki_pem,
+    sign_emergency_payload,
+    verify_emergency_token,
+)
 from . import api_bp as bp
 
 # ----------------- Local Helpers -----------------
 
 MASTER_OPERATOR_KEY = os.environ.get("MASTER_OPERATOR_KEY")
+_LOGIN_ATTEMPTS = {}
+
+
+def check_login_rate_limit(identity: str, limit_per_minute: int = 8):
+    """Simple in-memory login throttle.
+
+    This protects credential endpoints from brute-force attacks.
+    """
+    now = time.time()
+    entries = _LOGIN_ATTEMPTS.get(identity, [])
+    entries = [ts for ts in entries if now - ts < 60]
+    if len(entries) >= limit_per_minute:
+        retry_after = int(60 - (now - entries[0])) if entries else 60
+        return False, max(retry_after, 1)
+    entries.append(now)
+    _LOGIN_ATTEMPTS[identity] = entries
+    return True, None
+
+
+def _get_emergency_keys():
+    private_pem = current_app.config.get("EMERGENCY_PRIVATE_KEY_PEM")
+    public_pem = current_app.config.get("EMERGENCY_PUBLIC_KEY_PEM")
+    if not private_pem or not public_pem:
+        return None, None
+    return load_private_key_from_pem(private_pem), load_public_key_from_pem(public_pem)
+
+
+def _compact_codes(text_value: str) -> str:
+    if not text_value:
+        return ""
+    pieces = [chunk.strip().upper().replace(" ", "_") for chunk in text_value.split(",")]
+    return ",".join([p for p in pieces if p])
+
+
+def _build_emergency_payload(patient):
+    now = int(time.time())
+    ttl = int(current_app.config.get("EMERGENCY_TOKEN_TTL_SECONDS", 2592000))
+    return {
+        "iss": current_app.config.get("EMERGENCY_TOKEN_ISSUER", "brescan"),
+        "qr_id": patient["qr_id"],
+        "full_name": decrypt_data(patient.get("name")),
+        "age": calculate_age(patient.get("birthdate")),
+        "chronic_codes": _compact_codes(patient.get("chronic_diseases") or ""),
+        "allergies": (patient.get("other_info") or "")[:80],
+        "emergency_contact": decrypt_data(patient.get("phone")) if patient.get("phone") else "",
+        "critical_medications": _compact_codes(patient.get("medications") or ""),
+        "iat": now,
+        "exp": now + ttl,
+    }
 
 def ensure_default_hospital(cursor):
     cursor.execute("INSERT INTO hospitals (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", ("Default Hospital",))
@@ -98,7 +156,7 @@ def api_register():
     hospital_id = data.get("hospital_id")
     hospital_patient_id = data.get("hospital_patient_id")
 
-    hashed_pw = generate_password_hash(password)
+    hashed_pw = hash_password(password)
     enc_name = encrypt_data(name)
     enc_email = encrypt_data(email)
     enc_phone = encrypt_data(phone)
@@ -144,13 +202,21 @@ def api_login():
     if not username or not password:
         return jsonify({"error": "username & password required"}), 400
 
+    identity = f"patient:{username}:{request.remote_addr or 'ip-unknown'}"
+    allowed, retry_after = check_login_rate_limit(
+        identity,
+        int(current_app.config.get("LOGIN_RATE_LIMIT_PER_MINUTE", "8")),
+    )
+    if not allowed:
+        return jsonify({"error": "Too many attempts. Try again later.", "retry_after": retry_after}), 429
+
     conn = get_db()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     c.execute("SELECT * FROM patients WHERE username=%s", (username,))
     user = c.fetchone()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    if not check_password_hash(user["password"], password):
+    if not verify_password(password, user["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
     qr_id = (user.get("qr_id") or "").strip()
@@ -498,7 +564,7 @@ def api_doctor_register():
             INSERT INTO doctors (full_name, specialty, phone, email, hospital, username, password, hospital_id)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
         """, (data["full_name"], data["specialty"], data["phone"], data["email"],
-              data["hospital"], data["username"], generate_password_hash(data["password"]), hospital_id))
+              data["hospital"], data["username"], hash_password(data["password"]), hospital_id))
         conn.commit()
         return jsonify({"message": "Doctor registered"})
     except psycopg2.IntegrityError:
@@ -516,13 +582,21 @@ def api_doctor_login():
     if not username or not password:
         return jsonify({"error": "username & password required"}), 400
 
+    identity = f"doctor:{username}:{request.remote_addr or 'ip-unknown'}"
+    allowed, retry_after = check_login_rate_limit(
+        identity,
+        int(current_app.config.get("LOGIN_RATE_LIMIT_PER_MINUTE", "8")),
+    )
+    if not allowed:
+        return jsonify({"error": "Too many attempts. Try again later.", "retry_after": retry_after}), 429
+
     conn = get_db()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     c.execute("SELECT * FROM doctors WHERE username=%s", (username,))
     doc = c.fetchone()
     if not doc:
         return jsonify({"error": "User not found"}), 404
-    if not check_password_hash(doc["password"], password):
+    if not verify_password(password, doc["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
     hospital_name = None
@@ -595,7 +669,7 @@ def api_operator_register():
     try:
         resolved_hospital_id = resolve_hospital_id(c, hospital_id)
         c.execute("INSERT INTO operators (username, password, hospital_id, is_admin) VALUES (%s, %s, %s, %s)",
-                  (username, generate_password_hash(password), resolved_hospital_id, is_admin))
+                  (username, hash_password(password), resolved_hospital_id, is_admin))
         conn.commit()
         return jsonify({"message": "Operator created"})
     except psycopg2.IntegrityError:
@@ -613,13 +687,21 @@ def api_operator_login():
     if not username or not password:
         return jsonify({"error": "username & password required"}), 400
 
+    identity = f"operator:{username}:{request.remote_addr or 'ip-unknown'}"
+    allowed, retry_after = check_login_rate_limit(
+        identity,
+        int(current_app.config.get("LOGIN_RATE_LIMIT_PER_MINUTE", "8")),
+    )
+    if not allowed:
+        return jsonify({"error": "Too many attempts. Try again later.", "retry_after": retry_after}), 429
+
     conn = get_db()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     c.execute("SELECT * FROM operators WHERE username=%s", (username,))
     op = c.fetchone()
     if not op:
         return jsonify({"error": "User not found"}), 404
-    if not check_password_hash(op["password"], password):
+    if not verify_password(password, op["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
     hospital_id = op.get("hospital_id")
@@ -760,6 +842,85 @@ def api_analytics():
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     c.execute("SELECT * FROM operators WHERE username = %s", (username,))
     op = c.fetchone()
-    if not op or not check_password_hash(op["password"], password):
+    if not op or not verify_password(password, op["password"]):
         return jsonify({"error":"unauthorized"}), 401
     return jsonify(fetch_analytics_data())
+
+@bp.route('/emergency/public-key', methods=['GET'])
+def api_emergency_public_key():
+    """Expose the public key for offline verifier bootstrap.
+
+    Public keys are not secrets, so serving this is safe.
+    """
+    _, public_key = _get_emergency_keys()
+    if not public_key:
+        return jsonify({"error": "Emergency keypair not configured"}), 500
+    return jsonify({"public_key_pem": public_key_to_spki_pem(public_key)})
+
+
+@bp.route('/emergency/token/<qr_id>', methods=['GET'])
+def api_issue_emergency_token(qr_id):
+    """Issue signed minimal emergency token for a patient.
+
+    RBAC:
+    - doctors/operators can issue for any accessible workflow patient.
+    - patients can only issue their own token (via qr_id query check).
+    """
+    role = (request.args.get('role') or '').strip()
+    requester_qr = (request.args.get('requester_qr_id') or '').strip()
+    if role == 'patient' and requester_qr and requester_qr != qr_id:
+        return jsonify({"error": "Patients can only issue their own emergency token"}), 403
+
+    private_key, _ = _get_emergency_keys()
+    if not private_key:
+        return jsonify({"error": "Emergency keypair not configured"}), 500
+
+    conn = get_db()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    c.execute(
+        "SELECT qr_id, name, birthdate, chronic_diseases, medications, other_info, phone FROM patients WHERE qr_id = %s",
+        (qr_id,),
+    )
+    patient = c.fetchone()
+    if not patient:
+        return jsonify({"error": "Patient not found"}), 404
+
+    payload = _build_emergency_payload(patient)
+    token = sign_emergency_payload(payload, private_key)
+
+    base_url = request.url_root.rstrip('/')
+    offline_url = f"{base_url}/emergency/offline#token={token}"
+
+    qr_image = qrcode.make(offline_url)
+    output_path = os.path.join(current_app.static_folder, 'qrcodes', f'{qr_id}_emergency.png')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    qr_image.save(output_path)
+
+    return jsonify({
+        "token": token,
+        "offline_url": offline_url,
+        "qr_png": f"/static/qrcodes/{qr_id}_emergency.png",
+        "expires_at": payload['exp'],
+        "note": "Re-issue token whenever emergency fields change.",
+    })
+
+
+@bp.route('/emergency/verify', methods=['POST'])
+def api_verify_emergency_token():
+    data = request.get_json() or {}
+    token = (data.get('token') or '').strip()
+    if not token:
+        return jsonify({"error": "token required"}), 400
+
+    _, public_key = _get_emergency_keys()
+    if not public_key:
+        return jsonify({"error": "Emergency keypair not configured"}), 500
+
+    result = verify_emergency_token(token, public_key)
+    response = {
+        "status": result.status,
+        "reason": result.reason,
+        "payload": result.payload,
+    }
+    code = 200 if result.status == 'verified' else 400
+    return jsonify(response), code
