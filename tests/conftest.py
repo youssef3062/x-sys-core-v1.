@@ -13,7 +13,7 @@ def client():
         yield client
 
 @pytest.fixture
-def mock_db(mocker):
+def mock_db(monkeypatch):
     """Mock database connection and cursor"""
     # Create mocks
     mock_conn = MagicMock()
@@ -24,7 +24,9 @@ def mock_db(mocker):
     mock_cursor.__enter__.return_value = mock_cursor
     
     # Mock psycopg2.connect to return our mock_conn
-    mocker.patch('psycopg2.connect', return_value=mock_conn)
+    import psycopg2
+
+    monkeypatch.setattr(psycopg2, 'connect', lambda *args, **kwargs: mock_conn)
     
     # Configure fetchone/fetchall to return something by default (safeguard)
     mock_cursor.fetchone.return_value = None

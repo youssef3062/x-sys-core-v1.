@@ -189,20 +189,29 @@ def lab_upload(qr_id):
 
 @patient_bp.route("/access/<qr_id>", endpoint="guest_view")
 def guest_view(qr_id):
-    role = session.get("role")
-    if role == "doctor":
+    if session.get("role") == "doctor":
         return redirect(url_for("doctor.doctor_dashboard", qr_id=qr_id))
-    elif role == "operator":
-        return redirect(url_for("patient.add_visit", qr_id=qr_id)) 
-        
-    success, patient = fetch_patient_from_api(qr_id)
-    if not success:
-        flash(patient, "danger")
-        return render_template("guest_view.html", error=patient, qr_id=qr_id, patient=None, visits=[])
+    if session.get("role") == "operator":
+        return redirect(url_for("patient.add_visit", qr_id=qr_id))
 
-    patient["age"] = calculate_age(patient.get("birthdate"))
-    visits = fetch_visits_from_api(qr_id)
-    return render_template("guest_view.html", patient=patient, visits=visits, age=patient["age"], qr_id=qr_id)
+    # Guest access is intentionally minimal: emergency dataset only.
+    resp = safe_get(f"/api/emergency/token/{qr_id}")
+    ok, data = handle_api_response(resp)
+    if not ok:
+        return render_template("guest_view.html", error=data, qr_id=qr_id, patient=None, visits=[])
+
+    verify = safe_post('/api/emergency/verify', json={'token': data.get('token')})
+    vk, vr = handle_api_response(verify)
+    if not vk:
+        return render_template("guest_view.html", error=vr, qr_id=qr_id, patient=None, visits=[])
+
+    payload = vr.get('payload') or {}
+    patient = {
+        'name': payload.get('full_name'),
+        'chronic_diseases': payload.get('chronic_codes'),
+        'emergency_contact': payload.get('emergency_contact'),
+    }
+    return render_template("guest_view.html", patient=patient, visits=[], age=payload.get('age'), qr_id=qr_id)
 
 @patient_bp.route("/access-options/<qr_id>", endpoint="access_options")
 def access_options(qr_id):
